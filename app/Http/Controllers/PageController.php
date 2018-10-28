@@ -3,9 +3,13 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use App\Http\Requests;
 use App\Http\Requests\PageFormRequest;
 use App\Http\Controllers\Controller;
+use App\Notifications\PageDeleted;
+use App\Events\PageDeletedEvent;
 use App\Page;
 
 class PageController extends Controller
@@ -19,6 +23,11 @@ class PageController extends Controller
     public function index()
     {
         $pages = Page::all();
+
+        // $minutes = 60;
+        // $pages = Cache::remember('pages', $minutes, function () {
+        //     return Page::all();
+        // });
         return view('page.index', compact('pages'));
     }
 
@@ -46,6 +55,9 @@ class PageController extends Controller
             'title' => $request->input('title'),
             'content' => $request->input('content')
         ]);
+
+        // Cache::flush();
+
         return redirect()->route('page.index')->with('info', 'Page has been added.');
     }
 
@@ -88,6 +100,9 @@ class PageController extends Controller
         $page->title = $request->input('title');
         $page->content = $request->input('content');
         $page->save();
+
+        // Cache::flush();
+
         return redirect()->route('page.index')->with('info', 'Page has been updated.');
     }
 
@@ -99,7 +114,18 @@ class PageController extends Controller
      */
     public function destroy($id)
     {
-        Page::destroy($id);
+        $page = Page::find($id);
+        // $page->delete();
+
+        // send email
+        // $content = 'Page di delete';
+        // Mail::to('glend.maatita@gmail.com')->send(new PageDeleted($content));
+
+        // trigger event
+        event(new PageDeletedEvent($page));
+
+        // Cache::flush();
+
         return redirect()->route('page.index')->with('info', 'Page has been deleted.');
     }
 }
